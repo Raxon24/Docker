@@ -255,10 +255,54 @@ startInstall()
     fi
 
 #######################################################
-###               Install for Open Suse             ###
+###            Install for Alpine Linux             ###
 #######################################################
 
     if [[ "$OS" == "6" ]]; then
+        read -rp "Do you want to install system updates prior to installing Docker-CE? (y/n): " UPDALPINE
+        if [[ "$UPDALPINE" == [yY] ]]; then
+            echo "    1. Installing System Updates... "
+            (sudo apk update && apk upgrade) > ~/docker-script-install.log 2>&1 &
+            ## Show a spinner for activity progress
+            pid=$! # Process Id of the previous running command
+            spin='-\|/'
+            i=0
+            while kill -0 $pid 2>/dev/null
+            do
+                i=$(( (i+1) %4 ))
+                printf "\r${spin:$i:1}"
+		
+                sleep .1
+            done
+            printf "\r"
+        else
+            echo "    1. Skipping system update..."
+            sleep 2s
+        fi
+
+        echo "    2. Installing Prerequisite Packages..."
+        sudo apk add git curl nano wget >> ~/docker-script-install.log 2>&1
+
+        if [[ "$ISACT" != "active" ]]; then
+            echo "    3. Installing Docker-CE (Community Edition)..."
+            sleep 2s 
+            sudo apk add docker >> ~/docker-script-install.log 2>&1
+	    echo "    4. Enable & start Docker"
+            rc-update add docker >> ~/docker-script-install.log 2>&1
+	    service docker start >> ~/docker-script-install.log 2>&1
+
+            echo "    - docker-ce version is now:"
+            DOCKERV=$(docker -v)
+            echo "        "${DOCKERV}
+            sleep 3s
+        fi
+    fi
+
+#######################################################
+###               Install for Open Suse             ###
+#######################################################
+
+    if [[ "$OS" == "7" ]]; then
         # install system updates first
         read -rp "Do you want to install system updates prior to installing Docker-CE? (y/n): " UPDSUSE
         if [[ "$UPDSUSE" == [yY] ]]; then
@@ -344,7 +388,7 @@ startInstall()
         ###     Install Raspbian / Arm64   ###
         ######################################
 
-        if [[ "$OS" == "7" ]]; then
+        if [[ "$OS" == "8" ]]; then
             echo "    1. Installing dependencies..."
             (sudo apt-get install -y libffi-dev libssl-dev python3-dev python3 python3-pip) >> ~/docker-script-install.log 2>&1
             # Show our spinner
@@ -404,11 +448,19 @@ startInstall()
             sudo pacman -Sy docker-compose --noconfirm > ~/docker-script-install.log 2>&1
         fi
 
+       ######################################
+        ###        Install Arch Linux      ###
+        ######################################
+
+        if [[ "$OS" == "6" ]]; then
+            sudo apk add docker-compose > ~/docker-script-install.log 2>&1
+        fi
+
         ######################################
         ###        Install Open Suse       ###
         ######################################
 
-        if [[ "$OS" == "6" ]]; then
+        if [[ "$OS" == "7" ]]; then
             VERSION=$(curl --silent https://api.github.com/repos/docker/compose/releases/latest | grep -Po '"tag_name": "\K.*\d')
 		    sudo curl -SL https://github.com/docker/compose/releases/download/$VERSION/docker-compose-linux-x86_64 -o /usr/bin/docker-compose >> ~/docker-script-install.log 2>&1
 
@@ -687,10 +739,10 @@ echo "Let's figure out which OS / Distro you are running."
 echo ""
 echo ""
 echo "    From some basic information on your system, you appear to be running: "
-echo "        --  OS Name        " $(lsb_release -i)
-echo "        --  Description        " $(lsb_release -d)
-echo "        --  OS Version        " $(lsb_release -r)
-echo "        --  Code Name        " $(lsb_release -c)
+echo "      --  OS Name                " $(cat /etc/*-release | grep -Po "(?<=^ID=).+" | sed 's/"//g')
+echo "      --  Description            " $(cat /etc/*-release | egrep "PRETTY_NAME" | cut -d = -f 2 | tr -d '"')
+echo "      --  OS Version release     " $(cat /etc/*-release | egrep "VERSION_ID" | cut -d = -f 2 | tr -d '"')
+echo "      --  Code Name              " $(cat /etc/*-release | egrep "VERSION_CODENAME" | cut -d = -f 2 | tr -d '"')
 echo ""
 echo "------------------------------------------------------"
 echo ""
@@ -702,6 +754,7 @@ select _ in \
     "Ubuntu 18.04" \
     "Ubuntu 20.04 / 21.04 / 22.04+" \
     "Arch Linux" \
+    "Alpine Linux" \
     "Open Suse"\
     "Arm64 / Raspbian"\
     "End this Installer"
@@ -714,7 +767,8 @@ do
     5) installApps ;;
     6) installApps ;;
     7) installApps ;;
-    8) exit ;;
+    8) installApps ;;
+    9) exit ;;
     *) echo "Invalid selection, please try again..." ;;
   esac
 done
