@@ -261,7 +261,11 @@ startInstall()
     if [[ "$OS" == "6" ]]; then
         read -rp "Do you want to install system updates prior to installing Docker-CE? (y/n): " UPDALPINE
         if [[ "$UPDALPINE" == [yY] ]]; then
-            echo "    1. Installing System Updates... "
+            echo "    1. Installing System Updates... "                                                 
+           cat > /etc/apk/repositories << EOF; $(echo)
+           https://dl-cdn.alpinelinux.org/alpine/latest-stable)/main/
+           https://dl-cdn.alpinelinux.org/alpine/latest-stable)/community/
+           EOF
             (sudo apk update && apk upgrade) > ~/docker-script-install.log 2>&1 &
             ## Show a spinner for activity progress
             pid=$! # Process Id of the previous running command
@@ -281,14 +285,14 @@ startInstall()
         fi
 
         echo "    2. Installing Prerequisite Packages..."
-        sudo apk add git curl nano wget >> ~/docker-script-install.log 2>&1
+        sudo apk add gitapk add newt openssh curl nano wget >> ~/docker-script-install.log 2>&1
 
         if [[ "$ISACT" != "active" ]]; then
             echo "    3. Installing Docker-CE (Community Edition)..."
             sleep 2s 
             sudo apk add docker >> ~/docker-script-install.log 2>&1
 	    echo "    4. Enable & start Docker"
-            rc-update add docker >> ~/docker-script-install.log 2>&1
+            rc-update add docker default >> ~/docker-script-install.log 2>&1
 	    service docker start >> ~/docker-script-install.log 2>&1
 
             echo "    - docker-ce version is now:"
