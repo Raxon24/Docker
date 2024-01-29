@@ -263,8 +263,8 @@ startInstall()
         if [[ "$UPDALPINE" == [yY] ]]; then
             echo "    1. Installing System Updates... "                                                 
            cat > /etc/apk/repositories << EOF; $(echo)
-           https://dl-cdn.alpinelinux.org/alpine/latest-stable)/main/
-           https://dl-cdn.alpinelinux.org/alpine/latest-stable)/community/
+           https://dl-cdn.alpinelinux.org/alpine/latest-stable/main
+           https://dl-cdn.alpinelinux.org/alpine/latest-stable/community
            EOF
             (sudo apk update && apk upgrade) > ~/docker-script-install.log 2>&1 &
             ## Show a spinner for activity progress
